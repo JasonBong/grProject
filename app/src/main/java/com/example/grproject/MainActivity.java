@@ -34,7 +34,6 @@ import static android.Manifest.permission.CAMERA;
 public class MainActivity extends AppCompatActivity
         implements CameraBridgeViewBase.CvCameraViewListener2, View.OnTouchListener {
 
-    //test
     private static final String TAG = "opencv";
     private Mat matInput;
     private Mat matResult;
