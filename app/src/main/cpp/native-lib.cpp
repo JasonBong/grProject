@@ -90,7 +90,11 @@ Java_com_example_grproject_ResultActivity_CropImage(JNIEnv *env, jobject thiz, j
 
     resize(matInput,matInput,Size(1440,2560),0,0);
     Rect rect(x1,y1,300,300);
-
     matResult = matInput(rect);
+
+    //이미지 전처리
+    //resize(matResult,matResult,size(3,3),1.2, 1.2,INTER_CUBIC);
+    cvtColor(matResult,matResult, COLOR_BGR2GRAY);
+
 
 }

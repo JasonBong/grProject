@@ -1,31 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout android:layout_height="match_parent"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
-
-    <SurfaceView
-        android:id="@+id/surfaceView"
+    android:orientation="vertical"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <Button
+        android:id="@+id/btn_capture"
+        android:text="사진찍기"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        />
+        android:layout_height="wrap_content" />
 
-
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="300px"
-        android:layout_height="300px"
-        android:src="@drawable/scanarea"
-        android:layout_gravity="center"
-        android:background="#00ffffff"
-        />
-
-
-    <ImageButton
-        android:id="@+id/take_photo"
+    <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal|bottom"
-        android:src="@android:drawable/ic_menu_camera"
-        />
+        android:text = "hi"
+        android:id="@+id/tv1"/>
+    <Button
+        android:id="@+id/btn_album"
+        android:text="앨범열기"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+    <ImageView
+        android:id="@+id/iv_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 
-</FrameLayout>
+
+</LinearLayout>

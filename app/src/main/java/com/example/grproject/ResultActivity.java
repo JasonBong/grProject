@@ -8,6 +8,9 @@ import android.content.res.AssetManager;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.media.ExifInterface;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -63,59 +66,90 @@ public class ResultActivity extends AppCompatActivity {
 
     //내가 자를 이미지 pos
     int[] pos = new int[6];
+    String imgFileName = "drug1.jpg";
+    private ImageView imageView;
+    private ImageView imageView2;
+    private static final int REQUEST_CODE = 0;
+
+    String mCurrentPhotoPath;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_result);
 
-        final ImageView imageView = findViewById(R.id.imageView);
-        final ImageView imageView2 = findViewById(R.id.imageView2);
+        imageView = findViewById(R.id.imageView);
+        imageView2 = findViewById(R.id.imageView2);
         textView = findViewById(R.id.textView);
         resultText = findViewById(R.id.tv);
-
-        Intent intent = getIntent(); /*데이터 수신*/
-
-        pos = intent.getExtras().getIntArray("pos");
-
         Button button = findViewById(R.id.button);
+
+        Intent intent = getIntent();
+
+        File storageDir = new File(Environment.getExternalStorageDirectory() + "/Pictures");
+
+        File imageFile = new File(storageDir, "drug1.jpg");
+        mCurrentPhotoPath = imageFile.getAbsolutePath();
+
+        Bitmap rotatedBitmap;
+
+        File file = new File(mCurrentPhotoPath);
+        textView.setText(imgFileName);
+        try {
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri.fromFile(file));
+
+            ExifInterface ei = new ExifInterface(mCurrentPhotoPath);
+            int orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_UNDEFINED);
+
+            switch(orientation) {
+
+                case ExifInterface.ORIENTATION_ROTATE_90:
+                    rotatedBitmap = rotateImage(bitmap, 90);
+                    break;
+
+                case ExifInterface.ORIENTATION_ROTATE_180:
+                    rotatedBitmap = rotateImage(bitmap, 180);
+                    break;
+
+                case ExifInterface.ORIENTATION_ROTATE_270:
+                    rotatedBitmap = rotateImage(bitmap, 270);
+                    break;
+
+                case ExifInterface.ORIENTATION_NORMAL:
+                default:
+                    rotatedBitmap = bitmap;
+            }
+
+            imageView2.setImageBitmap(rotatedBitmap);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if( !isOpenCvLoaded )
                     return;
 
-                try {
+               // Intent intent = new Intent();
+                //intent.setType("image/*");
+               // intent.setAction(Intent.ACTION_GET_CONTENT);
+                //startActivityForResult(intent, REQUEST_CODE);
 
-                    String SAVE_FOLDER = "/Pictures";
+                    /*
+                    String fpath = getRealPathFromURI(MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    textView.setText(fpath + " " + file_title);
 
-                    Cursor c = getContentResolver().query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                            null,"bucket_display_name='Pictures'",null,null);
-
-
-                    String targetDir = "/mnt/sdcard/Pictures/sdcard/emulater/0/Pictures";
-                    File file = new File(targetDir+"/1.jpg");
+                    File file = new File(fpath+file_title);
                     InputStream is = new FileInputStream(file);
                     buf1 = new BufferedInputStream(is);
 
                     Bitmap bitmap = BitmapFactory.decodeStream(buf1); // 이미지 원본 불러옴
                     //
-                    Bitmap image1; // 출력될 이미지
-                    Mat oriImg = new Mat();
-                    Mat cropImg = new Mat();
 
-                    Utils.bitmapToMat(bitmap,oriImg); // 이미지 복사했고
-
-                    CropImage(oriImg.getNativeObjAddr(),cropImg.getNativeObjAddr(),pos);
-
-                    image1 = Bitmap.createBitmap(cropImg.cols(),cropImg.rows(),Bitmap.Config.ARGB_8888);
-
-                    //좌표 확인
-                    String test = String.format("%d %d",cropImg.cols(),cropImg.rows());
-                    textView.setText(test);
-
-                    Utils.matToBitmap(cropImg,image1);
-                    imageView2.setImageBitmap(image1);
+                    */
 
                     //너무 잘넘어오고
                     //String str = String.format("%d %d %d %d %d %d",pos[0],pos[1],pos[2],pos[3],pos[4],pos[5]);//left,top,right,bottom,width,height
@@ -148,11 +182,8 @@ public class ResultActivity extends AppCompatActivity {
                     imageView2.setImageBitmap(resultBitmap);
                     */
 
-                    //new AsyncTess().execute(grayBitmap); // 테서렉트API 실행
 
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+
             }
         });
 
@@ -161,6 +192,80 @@ public class ResultActivity extends AppCompatActivity {
         String dir = getFilesDir() + "/tesseract";
         if(checkLanguageFile(dir+"/tessdata"))
             tessBaseAPI.init(dir, "eng");
+    }
+
+    private Bitmap GetBinaryBitmap(Bitmap bitmap_src) {
+        Bitmap bitmap_new=bitmap_src.copy(bitmap_src.getConfig(), true);
+        for(int x=0; x<bitmap_new.getWidth(); x++) {
+            for (int y = 0; y < bitmap_new.getHeight(); y++) {
+                int color = bitmap_new.getPixel(x, y);
+                color = GetNewColor(color);
+                bitmap_new.setPixel(x, y, color);
+            }
+        }
+        return bitmap_new;
+    }
+
+    private int GetNewColor(int c) {
+        double dwhite=GetColorDistance(c,Color.WHITE);
+        double dblack=GetColorDistance(c,Color.BLACK)*0.3;
+        if(dwhite<=dblack) {
+            return Color.WHITE;
+        }
+        else {
+            return Color.BLACK;
+        }
+    }
+
+    private double GetColorDistance(int c1, int c2) {
+        int db= Color.blue(c1)-Color.blue(c2);
+        int dg=Color.green(c1)-Color.green(c2);
+        int dr=Color.red(c1)-Color.red(c2);
+        double d=Math.sqrt(  Math.pow(db, 2) + Math.pow(dg, 2) +Math.pow(dr, 2)  );
+        return d;
+    }
+
+    public static Bitmap rotateImage(Bitmap source, float angle) {
+        Matrix matrix = new Matrix();
+        matrix.postRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(),
+                matrix, true);
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE) {
+            if (resultCode == RESULT_OK) {
+                try {
+                    InputStream in = getContentResolver().openInputStream(data.getData());
+
+                    Bitmap img = BitmapFactory.decodeStream(in);
+                    in.close();
+
+                    Mat oriImg = new Mat();
+                    Mat cropImg = new Mat();
+
+                    Utils.bitmapToMat(img,oriImg); // 이미지 복사했고
+                    CropImage(oriImg.getNativeObjAddr(),cropImg.getNativeObjAddr(),pos);
+                    Bitmap image1 = Bitmap.createBitmap(cropImg.cols(),cropImg.rows(),Bitmap.Config.ARGB_8888);
+
+                    //좌표 확인
+                    String test = String.format("%d %d",cropImg.cols(),cropImg.rows());
+                    textView.setText(test);
+
+                    Utils.matToBitmap(cropImg,image1);
+                    image1 = GetBinaryBitmap(image1);
+                    imageView2.setImageBitmap(image1);
+
+                    new AsyncTess().execute(image1); // 테서렉트API 실행
+                    //imageView.setImageBitmap(img);
+                } catch (Exception e) {
+
+                }
+            } else if (resultCode == RESULT_CANCELED) {
+                Toast.makeText(this, "사진 선택 취소", Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     //테서렉트 관련
@@ -213,6 +318,10 @@ public class ResultActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String result) {
+            String match = "[^\uAC00-\uD7A3xfe0-9a-zA-Z\\s]";
+            result = result.replaceAll(match, " ");
+            result = result.replaceAll(" ", "");
+
             resultText.setText(result);
             Toast.makeText(getApplicationContext(), ""+result, Toast.LENGTH_LONG).show(); //토스트로 뛰우기
 
