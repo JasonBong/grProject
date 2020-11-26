@@ -97,4 +97,29 @@ Java_com_example_grproject_ResultActivity_CropImage(JNIEnv *env, jobject thiz, j
     cvtColor(matResult,matResult, COLOR_BGR2GRAY);
 
 
+}extern "C"
+JNIEXPORT void JNICALL
+Java_com_example_grproject_ResultActivity_BoxFilterImg(JNIEnv *env, jobject thiz, jlong addr_image,
+                                                       jlong addr_result) {
+    // TODO: implement BoxFilterImg()
+    Mat &img_input = *(Mat *) addr_image;
+    Mat &img_result = *(Mat *) addr_result;
+    cvtColor(img_input, img_result, COLOR_RGB2GRAY);
+    jstring result;
+    std::stringstream buffer;
+    Mat srcImage = img_result;
+
+    int border = 3;
+    Size ksize (border*2+1,border*2+1);
+
+    Mat destImage2;
+    int d = ksize.width;
+    double sigmaColor =10.0;
+    double sigmaSpace = 10.0;
+    //Canny( srcImage, destImage2, 10, 150);
+    bilateralFilter(srcImage,destImage2,-1,sigmaColor,sigmaSpace);
+
+
+    img_result = destImage2.clone();
+
 }

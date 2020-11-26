@@ -8,17 +8,12 @@
         android:text="사진찍기"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text = "hi"
-        android:id="@+id/tv1"/>
     <Button
         android:id="@+id/btn_album"
-        android:text="앨범열기"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:text = "앨범에서 가져오기"/>
+
     <ImageView
         android:id="@+id/iv_view"
         android:layout_width="match_parent"

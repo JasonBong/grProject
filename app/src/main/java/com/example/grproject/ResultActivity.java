@@ -3,6 +3,7 @@ package com.example.grproject;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.database.Cursor;
@@ -52,49 +53,102 @@ public class ResultActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
+    private static final int MY_PERMISSION_CAMERA = 1111;
+    private static final int REQUEST_TAKE_PHOTO = 2222;
+    private static final int REQUEST_TAKE_ALBUM = 3333;
+    private static final int REQUEST_IMAGE_CROP = 4444;
+    private static final int REQUEST_RESULT = 5555;
+
     private final static String TAG ="ResultActivity";
     private boolean isOpenCvLoaded = false;
 
-    public native void ConvertRGBtoGray(long matAddrInput, long matAddrResult);
     public native void CropImage(long addrImage, long addrResult,int[] pos);
-
+    public native void BoxFilterImg(long addrImage, long addrResult);
     TextView resultText,textView;
     TessBaseAPI tessBaseAPI;
 
-    FileInputStream inputStream = null;
-    BufferedInputStream buf1 = null;
+    Button cropBtn;//이미지 자르기 버튼
+    Button recoBtn;//텍스트 인식 버튼
 
-    //내가 자를 이미지 pos
+    Uri imageUri;
+    Uri photoURI, albumURI;
+
+    //이미지 정보
     int[] pos = new int[6];
     String imgFileName = "drug1.jpg";
     private ImageView imageView;
-    private ImageView imageView2;
     private static final int REQUEST_CODE = 0;
 
     String mCurrentPhotoPath;
+    Bitmap rotatedBitmap;
+    Bitmap recoginPicture;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_result);
 
+        cropBtn = findViewById(R.id.cropBtn);
+        recoBtn = findViewById(R.id.recoginBtn);
+
         imageView = findViewById(R.id.imageView);
-        imageView2 = findViewById(R.id.imageView2);
-        textView = findViewById(R.id.textView);
         resultText = findViewById(R.id.tv);
-        Button button = findViewById(R.id.button);
 
-        Intent intent = getIntent();
+        openMyImageFile(); // 사진찍기에서 최초 사진파일을 이미지뷰로 출력
 
+        //이미지 자르기 버튼
+        cropBtn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_PICK);
+                intent.setType("image/*");
+                intent.setType(android.provider.MediaStore.Images.Media.CONTENT_TYPE);
+                startActivityForResult(intent, REQUEST_TAKE_ALBUM);
+                imageView.setImageBitmap(rotatedBitmap);
+            }
+        });
+
+        //텍스트 인식 버튼
+        recoBtn.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                recoBtn.setText("인식 중");
+                Mat ori = new Mat();
+                Mat res = new Mat();//결과물
+
+                Utils.bitmapToMat(recoginPicture,ori);//이미지 복사
+                Mat gray = new Mat();
+                Utils.bitmapToMat(recoginPicture, gray);
+
+                Bitmap grayBitmap = Bitmap.createBitmap(gray.cols(), gray.rows(), null);
+                // 윗 부분 오류발생하면 마지막 param null 대신 Bitmap.Config.ARGB_8888
+                //Utils.matToBitmap(gray, grayBitmap);
+
+                BoxFilterImg(ori.getNativeObjAddr(),res.getNativeObjAddr());
+                Utils.matToBitmap(res,grayBitmap);
+
+                imageView.setImageBitmap(grayBitmap);
+                //recoginPicture = GetBinaryBitmap(recoginPicture);
+                new AsyncTess().execute(grayBitmap);
+            }
+        });
+
+        //테서렉
+        tessBaseAPI = new TessBaseAPI();
+        String dir = getFilesDir() + "/tesseract";
+        if(checkLanguageFile(dir+"/tessdata"))
+            tessBaseAPI.init(dir, "eng");
+    }
+
+    public void openMyImageFile(){
         File storageDir = new File(Environment.getExternalStorageDirectory() + "/Pictures");
-
         File imageFile = new File(storageDir, "drug1.jpg");
         mCurrentPhotoPath = imageFile.getAbsolutePath();
 
-        Bitmap rotatedBitmap;
+        rotatedBitmap = null;
 
         File file = new File(mCurrentPhotoPath);
-        textView.setText(imgFileName);
+        //textView.setText(imgFileName);
         try {
             Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), Uri.fromFile(file));
 
@@ -120,79 +174,14 @@ public class ResultActivity extends AppCompatActivity {
                 default:
                     rotatedBitmap = bitmap;
             }
-
-            imageView2.setImageBitmap(rotatedBitmap);
+            recoginPicture = rotatedBitmap;
+            imageView.setImageBitmap(rotatedBitmap);
 
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if( !isOpenCvLoaded )
-                    return;
-
-               // Intent intent = new Intent();
-                //intent.setType("image/*");
-               // intent.setAction(Intent.ACTION_GET_CONTENT);
-                //startActivityForResult(intent, REQUEST_CODE);
-
-                    /*
-                    String fpath = getRealPathFromURI(MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    textView.setText(fpath + " " + file_title);
-
-                    File file = new File(fpath+file_title);
-                    InputStream is = new FileInputStream(file);
-                    buf1 = new BufferedInputStream(is);
-
-                    Bitmap bitmap = BitmapFactory.decodeStream(buf1); // 이미지 원본 불러옴
-                    //
-
-                    */
-
-                    //너무 잘넘어오고
-                    //String str = String.format("%d %d %d %d %d %d",pos[0],pos[1],pos[2],pos[3],pos[4],pos[5]);//left,top,right,bottom,width,height
-                    //textView.setText(str);
-
-
-                   /*
-                    Toast.makeText(getApplicationContext(),"opencv시작",Toast.LENGTH_LONG).show();
-                    InputStream is = getAssets().open("te1.png");
-                    Bitmap bitmap = BitmapFactory.decodeStream(is); // 이미지를 셋팅하는 법ㅁ
-                    imageView.setImageBitmap(bitmap);
-
-                    Mat gray = new Mat();
-                    Utils.bitmapToMat(bitmap, gray);
-
-                    Imgproc.cvtColor(gray, gray, Imgproc.COLOR_RGBA2GRAY);
-
-                    Bitmap grayBitmap = Bitmap.createBitmap(gray.cols(), gray.rows(), null);
-                    Utils.matToBitmap(gray, grayBitmap); //  Mat 비트맵으로 변환
-
-                    imageView2.setImageBitmap(grayBitmap);
-
-                    Mat image = new Mat();
-                    Mat result = new Mat();
-
-                    Utils.bitmapToMat(grayBitmap,image);
-                    canny(image.getNativeObjAddr(),result.getNativeObjAddr());
-                    Bitmap resultBitmap = Bitmap.createBitmap(result.cols(),result.rows(),Bitmap.Config.ARGB_8888);
-                    Utils.matToBitmap(result,resultBitmap);
-                    imageView2.setImageBitmap(resultBitmap);
-                    */
-
-
-
-            }
-        });
-
-        //테서렉트
-        tessBaseAPI = new TessBaseAPI();
-        String dir = getFilesDir() + "/tesseract";
-        if(checkLanguageFile(dir+"/tessdata"))
-            tessBaseAPI.init(dir, "eng");
     }
+
 
     private Bitmap GetBinaryBitmap(Bitmap bitmap_src) {
         Bitmap bitmap_new=bitmap_src.copy(bitmap_src.getConfig(), true);
@@ -206,9 +195,10 @@ public class ResultActivity extends AppCompatActivity {
         return bitmap_new;
     }
 
+
     private int GetNewColor(int c) {
         double dwhite=GetColorDistance(c,Color.WHITE);
-        double dblack=GetColorDistance(c,Color.BLACK)*0.3;
+        double dblack=GetColorDistance(c,Color.BLACK)*0.4;
         if(dwhite<=dblack) {
             return Color.WHITE;
         }
@@ -234,40 +224,69 @@ public class ResultActivity extends AppCompatActivity {
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_CODE) {
-            if (resultCode == RESULT_OK) {
-                try {
-                    InputStream in = getContentResolver().openInputStream(data.getData());
+        switch (requestCode) {
+            case REQUEST_TAKE_ALBUM:
+                if (resultCode == Activity.RESULT_OK) {
 
-                    Bitmap img = BitmapFactory.decodeStream(in);
-                    in.close();
-
-                    Mat oriImg = new Mat();
-                    Mat cropImg = new Mat();
-
-                    Utils.bitmapToMat(img,oriImg); // 이미지 복사했고
-                    CropImage(oriImg.getNativeObjAddr(),cropImg.getNativeObjAddr(),pos);
-                    Bitmap image1 = Bitmap.createBitmap(cropImg.cols(),cropImg.rows(),Bitmap.Config.ARGB_8888);
-
-                    //좌표 확인
-                    String test = String.format("%d %d",cropImg.cols(),cropImg.rows());
-                    textView.setText(test);
-
-                    Utils.matToBitmap(cropImg,image1);
-                    image1 = GetBinaryBitmap(image1);
-                    imageView2.setImageBitmap(image1);
-
-                    new AsyncTess().execute(image1); // 테서렉트API 실행
-                    //imageView.setImageBitmap(img);
-                } catch (Exception e) {
-
+                    if (data.getData() != null) {
+                        try {
+                            File albumFile = null;
+                            File storageDir = new File(Environment.getExternalStorageDirectory() + "/Pictures");
+                            albumFile = new File(storageDir,"drug1.jpg");
+                            photoURI = data.getData();
+                            albumURI = Uri.fromFile(albumFile);
+                            cropImage();
+                        } catch (Exception e) {
+                            Log.e("TAKE_ALBUM_SINGLE ERROR", e.toString());
+                        }
+                    }
                 }
-            } else if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "사진 선택 취소", Toast.LENGTH_LONG).show();
-            }
+                break;
+
+            case REQUEST_IMAGE_CROP:
+                if (resultCode == Activity.RESULT_OK) {
+                    galleryAddPic();
+                    imageView.setImageURI(albumURI);
+                    try {
+                        recoginPicture=MediaStore.Images.Media.getBitmap(getContentResolver(),albumURI);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                break;
         }
+
     }
 
+    private void galleryAddPic(){
+        Log.i("galleryAddPic", "Call");
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        // 해당 경로에 있는 파일을 객체화(새로 파일을 만든다는 것으로 이해하면 안 됨)
+        File f = new File(mCurrentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        sendBroadcast(mediaScanIntent);
+        Toast.makeText(this, "사진이 앨범에 저장되었습니다.", Toast.LENGTH_SHORT).show();
+
+    }
+    public void cropImage(){
+        Log.i("cropImage", "Call");
+        Log.i("cropImage", "photoURI : " + photoURI + " / albumURI : " + albumURI);
+
+        Intent cropIntent = new Intent("com.android.camera.action.CROP");
+
+        // 50x50픽셀미만은 편집할 수 없다는 문구 처리 + 갤러리, 포토 둘다 호환하는 방법
+        cropIntent.setFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        cropIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        cropIntent.setDataAndType(photoURI, "image/*");
+        //cropIntent.putExtra("outputX", 200); // crop한 이미지의 x축 크기, 결과물의 크기
+        //cropIntent.putExtra("outputY", 200); // crop한 이미지의 y축 크기
+        cropIntent.putExtra("aspectX", 1); // crop 박스의 x축 비율, 1&1이면 정사각형
+        cropIntent.putExtra("aspectY", 1); // crop 박스의 y축 비율
+        cropIntent.putExtra("scale", true);
+        cropIntent.putExtra("output", albumURI); // 크랍된 이미지를 해당 경로에 저장
+        startActivityForResult(cropIntent, REQUEST_IMAGE_CROP);
+    }
     //테서렉트 관련
     boolean checkLanguageFile(String dir)
     {
@@ -275,7 +294,7 @@ public class ResultActivity extends AppCompatActivity {
         if(!file.exists() && file.mkdirs())
             createFiles(dir);
         else if(file.exists()){
-            String filePath = dir + "/eng.traineddata";
+            String filePath = dir + "/eng.traineddata";  //테서렉트 학습된 데이터
             File langDataFile = new File(filePath);
             if(!langDataFile.exists())
                 createFiles(dir);
@@ -283,7 +302,7 @@ public class ResultActivity extends AppCompatActivity {
         return true;
     }
 
-    private void createFiles(String dir)
+    private void createFiles(String dir)  //테서렉트 파일 이용
     {
         AssetManager assetMgr = this.getAssets();
 
@@ -292,9 +311,7 @@ public class ResultActivity extends AppCompatActivity {
 
         try {
             inputStream = assetMgr.open("eng.traineddata");
-
             String destFile = dir + "/eng.traineddata";
-
             outputStream = new FileOutputStream(destFile);
 
             byte[] buffer = new byte[1024];
@@ -310,7 +327,7 @@ public class ResultActivity extends AppCompatActivity {
         }
     }
 
-    private class AsyncTess extends AsyncTask<Bitmap, Integer, String> {
+    private class AsyncTess extends AsyncTask<Bitmap, Integer, String> { //테서렉트 실행 시
         @Override
         protected String doInBackground(Bitmap... mRelativeParams) {
             tessBaseAPI.setImage(mRelativeParams[0]);
@@ -322,9 +339,13 @@ public class ResultActivity extends AppCompatActivity {
             result = result.replaceAll(match, " ");
             result = result.replaceAll(" ", "");
 
-            resultText.setText(result);
-            Toast.makeText(getApplicationContext(), ""+result, Toast.LENGTH_LONG).show(); //토스트로 뛰우기
+            resultText.setText("인식된 텍스트 : "+result);
+            recoBtn.setText("텍스트 인식하기");
 
+            Intent intent = new Intent(getApplicationContext(),PillResultActivity.class);
+            String str = result;
+            intent.putExtra("recoginText",result);
+            startActivity(intent);
         }
     }
 

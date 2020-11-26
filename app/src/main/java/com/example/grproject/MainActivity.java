@@ -65,18 +65,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        textView = (TextView)findViewById(R.id.tv1);
+        //textView = (TextView)findViewById(R.id.tv1);
 
         btn_capture = (Button) findViewById(R.id.btn_capture);
         btn_album = (Button) findViewById(R.id.btn_album);
         iv_view = (ImageView) findViewById(R.id.iv_view);
 
+        checkPermission();
 
         btn_capture.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 captureCamera();
-                //goResultActivity();
             }
         });
 
@@ -87,8 +87,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-
-        checkPermission();
     }
 
 
@@ -116,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         } else {
-            Toast.makeText(this, "저장공간이 접근 불가능한 기기입니다", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "저장공간에 접근 불가", Toast.LENGTH_SHORT).show();
             return;
         }
     }
@@ -140,25 +138,6 @@ public class MainActivity extends AppCompatActivity {
         return imageFile;
     }
 
-    /*
-    private void goResultActivity(){
-        Intent intent = new Intent(getApplicationContext(), ResultActivity.class);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        rotatedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
-        byteArray = stream.toByteArray();
-        intent.putExtra("image", byteArray);
-        startActivityForResult(intent,REQUEST_RESULT);
-    }
-    */
-
-    private void getAlbum(){
-        Log.i("getAlbum", "Call");
-        Intent intent = new Intent(Intent.ACTION_PICK);
-        intent.setType("image/*");
-        intent.setType(android.provider.MediaStore.Images.Media.CONTENT_TYPE);
-        startActivityForResult(intent, REQUEST_TAKE_ALBUM);
-    }
-
     private void galleryAddPic(){
         Log.i("galleryAddPic", "Call");
         Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
@@ -169,6 +148,15 @@ public class MainActivity extends AppCompatActivity {
         sendBroadcast(mediaScanIntent);
         Toast.makeText(this, "사진이 앨범에 저장되었습니다.", Toast.LENGTH_SHORT).show();
 
+    }
+
+    //이미지 불러올때 사용
+    private void getAlbum(){
+        Log.i("getAlbum", "Call");
+        Intent intent = new Intent(Intent.ACTION_PICK);
+        intent.setType("image/*");
+        intent.setType(android.provider.MediaStore.Images.Media.CONTENT_TYPE);
+        startActivityForResult(intent, REQUEST_TAKE_ALBUM);
     }
 
     // 카메라 전용 크랍
@@ -197,16 +185,6 @@ public class MainActivity extends AppCompatActivity {
                 matrix, true);
     }
 
-    /*
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if(flag == 1) {
-
-            flag = 0;
-        }
-    }
-    */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -247,10 +225,11 @@ public class MainActivity extends AppCompatActivity {
                         Log.i("REQUEST_TAKE_PHOTO", "OK");
                         galleryAddPic();
 
+                        //결과 액티비티로 넘어가는 부분
+
                         Intent intent = new Intent(this, ResultActivity.class);
-                        //intent.putExtra("imgFile",imgFileName);
+                        //intent.putExtra("imgFile",imgFileName);//뭔가 안넘아감;
                         startActivity(intent);
-                        flag =1;
                         //iv_view.setImageBitmap(rotatedBitmap);
                     } catch (Exception e) {
                         Log.e("REQUEST_TAKE_PHOTO", e.toString());
@@ -269,7 +248,12 @@ public class MainActivity extends AppCompatActivity {
                             albumFile = createImageFile();
                             photoURI = data.getData();
                             albumURI = Uri.fromFile(albumFile);
-                            cropImage();
+
+                            Intent intent = new Intent(this, ResultActivity.class);
+                            //intent.putExtra("imgFile",imgFileName);//뭔가 안넘아감;
+
+                            startActivity(intent);
+                            //cropImage();
                         } catch (Exception e) {
                             Log.e("TAKE_ALBUM_SINGLE ERROR", e.toString());
                         }
@@ -328,8 +312,6 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
                 }
-                // 허용했다면 이 부분에서..
-
                 break;
         }
     }

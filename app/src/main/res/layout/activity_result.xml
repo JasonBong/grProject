@@ -7,31 +7,32 @@
     android:orientation="vertical"
     tools:context=".ResultActivity">
 
-    <TextView
-        android:id="@+id/textView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Hello World!" />
 
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="test"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="50dp"
+        android:text = ""/>
 
     <ImageView
         android:id="@+id/imageView"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-            />
-
-    <ImageView
-        android:id="@+id/imageView2"
-        android:layout_width="600px"
-        android:layout_height="600px"
+        android:layout_height="350dp"
         android:layout_gravity="center"
         />
 
+
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="이미지 자르기"
+        android:id="@+id/cropBtn"/>
+    <Button
+        android:layout_width="200dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="텍스트 인식"
+        android:id="@+id/recoginBtn"/>
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -51,8 +52,10 @@
                     android:id="@+id/tv"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:text="여기에 텍스트 인식 결과가 표시됩니다."
+                    android:gravity="center"
+                    android:text="텍스트 표시"
                     android:textSize="18sp" />
+
             </LinearLayout>
         </ScrollView>
 
